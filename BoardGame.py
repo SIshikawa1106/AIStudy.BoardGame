@@ -6,9 +6,12 @@ Piece = namedtuple('Piece', ('PieceID', 'cpos', 'npos'))
 
 
 class Board():
-    def reset(self, rows=8, cols=6):
+    def __init__(self, rows=8, cols=6):
         self.rows = rows
         self.cols = cols
+        self.reset()
+
+    def reset(self):
         self.table = np.array([0]*self.rows*self.cols, dtype=np.float32).reshape(self.rows, self.cols)
         self.tmpTalbe = self.table.copy()
         self.winner = None
@@ -79,7 +82,9 @@ class Board():
         #print(("step enable = {}").format(enable))
         return enable
 
-    def get_enable_jump_d(self, row, col, drow, dcol):
+    def get_enable_jump_d(self, row, col, drow, dcol, check=False):
+        if check:
+            self.tmpTalbe[row][col] = 2
         enable = []
         dist = 1
         found = False
@@ -104,11 +109,13 @@ class Board():
                     	return enable
                 else:
                     enable.append([tprow,tpcol])
+                    if check:
+                        self.tmpTalbe[tprow][tpcol] = 2
                     return enable
             dist += 1
         return enable
 
-    def get_enable_jump(self, row, col):
+    def get_enable_jump(self, row, col, check=False):
         enable = []
 
         for y in range(-1, 2):
@@ -117,7 +124,7 @@ class Board():
                 if y==0 and x==0:
                     continue
 
-                tmp = self.get_enable_jump_d(row, col, y, x)
+                tmp = self.get_enable_jump_d(row, col, y, x, check)
                 if len(tmp)!=0:
                     enable = enable + tmp
                     
