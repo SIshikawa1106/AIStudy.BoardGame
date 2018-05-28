@@ -38,11 +38,34 @@ class RandomActor:
     def random_action_func(self):
         self.random_count += 1
         pieces = self.board.get_enable_pieces()
-        #piece, cmd = self.action_priority(pieces)
-        piece, cmd = self.action_random(pieces)
+        piece, cmd = self.action_priority(pieces)
+        #piece, cmd = self.action_random(pieces)
 
         #print(("random act:idx={},cmd={}").format(piece.PieceID, cmd))
         return cnvrtMoveCmd2ActCmd(self.board, piece.PieceID, [cmd[0], cmd[1]])
+
+    def random_action_func_with_priority(self):
+        self.random_count += 1
+        pieces = self.board.get_enable_pieces()
+        piece, cmd = self.action_priority(pieces)
+
+        #print(("random act:idx={},cmd={}").format(piece.PieceID, cmd))
+        return cnvrtMoveCmd2ActCmd(self.board, piece.PieceID, [cmd[0], cmd[1]])
+
+class RandomPlayer:
+    def __init__(self, board, withPriority=True):
+        self.randomAct = RandomActor(board)
+        self.priority = withPriority
+
+    def act(self):
+        act = None
+        if self.priority:
+            act = self.randomAct.random_action_func_with_priority()
+        else:
+            act = self.randomAct.random_action_func()
+        target, cmd, jump =  cnvrtActCmd2MoveCmd(self.randomAct.board, act)
+        return target, cmd
+
 
 def cnvrtActCmd2MoveCmd(board, act):
     pid = int(act / 8) + 1
@@ -147,13 +170,15 @@ class QFunction(chainer.Chain):
             l0=L.Linear(obs_size, n_hidden_channels),
             l1=L.Linear(n_hidden_channels, n_hidden_channels),
             l2=L.Linear(n_hidden_channels, n_hidden_channels),
-            l3=L.Linear(n_hidden_channels, n_actions))
+            l3=L.Linear(n_hidden_channels, n_hidden_channels),
+            l4=L.Linear(n_hidden_channels, n_actions))
 
     def __call__(self, x, test=False):
         h = F.leaky_relu(self.l0(x))
         h = F.leaky_relu(self.l1(h))
         h = F.leaky_relu(self.l2(h))
-        h = self.l3(h)
+        h = F.leaky_relu(self.l3(h))
+        h = self.l4(h)
         return chainerrl.action_value.DiscreteActionValue(h)
 
 class DoubleDQN():
@@ -165,6 +190,8 @@ class DoubleDQN():
             self.optimizer = chainer.optimizers.MomentumSGD()
         elif opt == "Adam":
             self.optimizer = chainer.optimizers.Adam(0.01)
+        elif opt == "RMS":
+            self.optimizer = chainer.optimizers.RMSprop()
         else:
             self.optimizerName = "SGD"
             self.optimizer = chainer.optimizers.SGD()
@@ -180,7 +207,7 @@ class DoubleDQN():
         self.gamma = gamma
 
         self.explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
-            start_epsilon=1 if useTrain else 0, end_epsilon=epsilon, decay_steps=10 ** 5, random_action_func=self.randAct.random_action_func)
+            start_epsilon=1 if useTrain else 0, end_epsilon=epsilon, decay_steps=10 ** 7, random_action_func=self.randAct.random_action_func)
 
         self.explorer2 = chainerrl.explorers.LinearDecayEpsilonGreedy(
             start_epsilon=1.0, end_epsilon=1.0, decay_steps=10 ** 5, random_action_func=self.randAct.random_action_func)
@@ -233,7 +260,7 @@ class DoubleDQN():
 
         labelName =  self.optimizerName
         if self.isFC == True:
-            labelName += "_fc4"
+            labelName += "_fc5"
             labelName += "_" + str(self.hidden)
         else:
             labelName += "_cnn4_30"
@@ -280,6 +307,7 @@ class DoubleDQN():
                         reward = -1
                     if self.board.missed is True:
                         miss += 1
+                        reward = -2
                         # board.show()
                         #print("miss")
                         #test = raw_input(("wait target = {}, cmd = {}").format(target, cmd))
@@ -348,5 +376,5 @@ class DoubleDQN():
 if __name__ == '__main__':
     board = game.Board()
     board.show()
-    dqn = DoubleDQN(board=board,oneSide=False, isFC=True, gamma=0.8, capacity=10**5, opt="MMT", hidden=200)
+    dqn = DoubleDQN(board=board,oneSide=True, isFC=True, gamma=0.8, capacity=10**5, opt="SGD", hidden=100)
     dqn.train()
