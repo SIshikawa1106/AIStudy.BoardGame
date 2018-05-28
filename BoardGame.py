@@ -6,7 +6,7 @@ Piece = namedtuple('Piece', ('PieceID', 'cpos', 'npos'))
 
 
 class Board():
-    def __init__(self, rows=8, cols=6):
+    def __init__(self, rows=8, cols=5):
         self.rows = rows
         self.cols = cols
         self.reset()

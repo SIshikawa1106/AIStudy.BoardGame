@@ -22,10 +22,11 @@ def test():
             print(e)
 
     humanPlayer = HumanPlayer.HumanPlayer()
-    aiPlayer = AIPlayer.DoubleDQN(board, useTrain=False)
+    aiPlayer = AIPlayer.DoubleDQN(board, useTrain=False, hidden=100)
+    #aiPlayer = AIPlayer.RandomPlayer(board)
 
     #loading
-    aiPlayer.load("./MMT_fc4_gamma0.8/result_100000")
+    aiPlayer.load("./test")
 
     while board.done == False:
         board.show()
@@ -43,6 +44,9 @@ def test():
             board.move(target, cmd)
             board.show()
             if board.winner!=None:
+                if board.missed:
+                    print("missed!")
+                    human = not(human)
                 print(("---Winner = {}---").format("You!" if human else "AI"))
                 break
 
