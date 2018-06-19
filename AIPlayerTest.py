@@ -207,15 +207,15 @@ class DoubleDQN():
         if isFC == True:
             self.q_func = QFunction(board.cols*board.rows, board.cols*8, n_hidden_channels=hidden)
         else:
-            self.q_func = QCNNFunction(board.rows, board.cols, 1, board.cols*8, n_hidden_channels=hidden)
+            self.q_func = QCNNFunction(board.rows, board.cols, 2, board.cols*8, n_hidden_channels=hidden)
         self.optimizer.setup(self.q_func)
         self.gamma = gamma
 
         self.explorer = chainerrl.explorers.LinearDecayEpsilonGreedy(
-            start_epsilon=sepsilon if useTrain else 0, end_epsilon=epsilon, decay_steps=10 ** 5, random_action_func=self.randAct.random_action_func)
+            start_epsilon=sepsilon if useTrain else 0, end_epsilon=epsilon, decay_steps=10 ** 4, random_action_func=self.randAct.random_action_func)
 
         self.explorer2 = chainerrl.explorers.LinearDecayEpsilonGreedy(
-            start_epsilon=1.0, end_epsilon=1.0, decay_steps=10 ** 5, random_action_func=self.randAct.random_action_func)
+            start_epsilon=1.0, end_epsilon=1.0, decay_steps=10 ** 4, random_action_func=self.randAct.random_action_func)
 
         self.capacity = capacity
         self.replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=capacity)
@@ -261,6 +261,22 @@ class DoubleDQN():
                 act[int((piece.PieceID-1)*8+index)] = 1
         return act
 
+    def makeEnableAct(self):
+        pieces = self.board.get_enable_pieces();
+        actImg = np.empty(self.board.table.shape, np.float32)
+
+        for piece in pieces:
+            for cmd in piece.npos:
+                actImg[cmd[0]][cmd[1]] = piece.PieceID
+
+        return actImg
+
+    def makeInputData(self, x):
+        tmp = self.makeEnableAct()
+        x = x[np.newaxis,]
+        tmp = tmp[np.newaxis,]
+        return np.concatenate((x,tmp),axis=0)
+
     def train(self, n_episodes=10**7, viewStep=100, saveStep=10000):
         print("Training Start")
 
@@ -301,7 +317,7 @@ class DoubleDQN():
             while not self.board.done:
                 x = None
                 if self.isFC == False:
-                    x = self.board.table[np.newaxis, :, :] / self.board.cols
+                    x = self.makeInputData(self.board.table) / self.board.cols
                 else:
                     x = self.board.table.flatten() / self.board.cols
 
@@ -330,14 +346,14 @@ class DoubleDQN():
                             #print("p2 miss")
                         #test = raw_input(("wait target = {}, cmd = {}").format(target, cmd))
                     if self.isFC == False:
-                        x = self.board.table[np.newaxis, :, :] / self.board.cols
+                        x = self.makeInputData(self.board.table) / self.board.cols
                     else:
                         x = self.board.table.flatten() / self.board.cols
                     self.agents[turn].stop_episode_and_train(x, reward, True)
 
                     if self.agents[(turn + 1) % 2].last_state is not None and self.board.missed is False:
                         if self.isFC == False:
-                            x = last_state[np.newaxis, :, :] / self.board.cols
+                            x = self.makeInputData(last_state) / self.board.cols
                         else:
                             x = last_state.flatten() / self.board.cols
                         self.agents[(turn + 1) % 2].stop_episode_and_train(x, reward * -1, True)
@@ -394,5 +410,5 @@ class DoubleDQN():
 if __name__ == '__main__':
     board = game.Board()
     board.show()
-    dqn = DoubleDQN(board=board,oneSide=False, isFC=False, gamma=0.7, capacity=10**6, opt="MMT", hidden=100)
+    dqn = DoubleDQN(board=board,oneSide=False, isFC=False, gamma=0.8, capacity=10**6, opt="MMT", hidden=30)
     dqn.train()

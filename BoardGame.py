@@ -31,11 +31,11 @@ class Board():
             self.table[0][i] = -1 * (self.cols-i)
             self.table[self.rows-1][i] = i+1
             
-        hr = hr + "\n"
+        hr = "  " + hr + "\n"
         self.strBoard = ""
 
         for i in range(self.rows):
-            self.strBoard = self.strBoard + rowStr
+            self.strBoard = self.strBoard + ("{}:").format(i) + rowStr
             if i!=self.rows-1:
                 self.strBoard = self.strBoard + hr
         

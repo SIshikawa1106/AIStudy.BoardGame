@@ -41,11 +41,12 @@ class HumanPlayer:
                 	
                 cmd = input("Input(i=, i==-1 means skip):")
                 cmd = int(cmd)
-                if cmd<0 or cmd >= len(jump):
+                if cmd<-1 or cmd >= len(jump):
                     print("Invalid command")
                     continue
                 if cmd==-1:
-                	return None
+                    print("Skipe")
+                    return None
                 valid = True
                 return jump[cmd]
             except Exception as e:
@@ -65,7 +66,7 @@ def test():
     while board.done == False:
         board.show()
         target, cmd = human.act(board)
-
+        pos = board.get_target(target)
         print(target)
         print(cmd)
         while True:
@@ -74,14 +75,14 @@ def test():
             if board.winner!=None:
                 print(("---Winner = {}---").format(board.winner))
                 break
-
-            jump = board.get_enable_jump(cmd[0],cmd[1])
-            if len(jump)==0:
-                board.reverse()
-                break
-            else:
-                print("You can move once more.")
-            cmd = human.cmd(jump)
+            if abs(pos[0]-cmd[0])>1 or abs(pos[1]-cmd[1])>1:
+                jump = board.get_enable_jump(cmd[0],cmd[1])
+                if len(jump)!=0:
+                    print("You can move once more.")
+                    cmd = human.cmd(jump)
+                    continue
+            board.reverse()
+            break
 
 if __name__ == '__main__':
     test()

@@ -1,5 +1,5 @@
 import BoardGame
-import AIPlayer
+import AIPlayerTest2 as AIPlayer
 import HumanPlayer
 
 def test():
@@ -22,7 +22,7 @@ def test():
             print(e)
 
     humanPlayer = HumanPlayer.HumanPlayer()
-    aiPlayer = AIPlayer.DoubleDQN(board, useTrain=False, hidden=100)
+    aiPlayer = AIPlayer.DoubleDQN(board, useTrain=False, hidden=80, isFC=False)
     #aiPlayer = AIPlayer.RandomPlayer(board)
 
     #loading
@@ -41,6 +41,7 @@ def test():
         print(target)
         print(cmd)
         while True:
+            pos = board.get_target(target)
             board.move(target, cmd)
             board.show()
             if board.winner!=None:
@@ -53,13 +54,15 @@ def test():
             if human == False:
                 board.reverse()
                 break
-            jump = board.get_enable_jump(cmd[0],cmd[1])
-            if len(jump)==0:
-                board.reverse()
-                break
-            else:
-                print("You can move once more.")
-                cmd = humanPlayer.cmd(jump)
+            if abs(pos[0]-cmd[0])>1 or abs(pos[1]-cmd[1])>1:
+                jump = board.get_enable_jump(cmd[0],cmd[1])
+                if len(jump)!=0:
+                    print("You can move once more.")
+                    cmd = humanPlayer.cmd(jump)
+                    if cmd!=None:
+                        continue
+            board.reverse()
+            break
         human = not human
 
 if __name__ == '__main__':
