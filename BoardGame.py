@@ -53,7 +53,7 @@ class Board():
         num1 = np.where(self.table[0]>0)[0]
         num2 = np.where(self.table[1]>0)[0]
         
-        if len(num1)>0 or len(num2)>0:
+        if len(num1)+len(num2)>=self.cols:
             self.winner = 1
             self.done = True
             
@@ -131,6 +131,19 @@ class Board():
         #print(("row={}, col={}, move point={}").format(row, col, enable))
         return enable
 
+    def get_enable_cmd(self, row, col):
+
+        tmpCmd1 = self.get_enable_step(row, col)
+        tmpCmd2 = self.get_enable_jump(row, col)
+        cmd = []
+
+        if len(tmpCmd1) != 0:
+            cmd = tmpCmd1
+        if len(tmpCmd2) != 0:
+            cmd = cmd + tmpCmd2
+
+        return cmd
+
     def get_target_all(self):
         #print(self.table)
         candidate = np.where(self.table>0)
@@ -154,7 +167,7 @@ class Board():
         #print(("get_target input index = {}").format(index))
         #print(self.table)
         tmp = np.where(self.table==index)
-        
+
         return [tmp[0][0],tmp[1][0]]
     
     def get_enable_pieces(self):
@@ -176,18 +189,38 @@ class Board():
             if len(cmd)!=0:
                 output.append(Piece(PieceID=ids[index],cpos=[targets[index][0], targets[index][1]], npos=cmd))
 
-        return output    
+        return output
+
+    def isMoved(self):
+        tmp = np.where(self.tmpTalbe>0)
+        return len(tmp[0])!=0
 
     def move(self, id, command):
         #print("move")
         target = self.get_target(id)
-        
-        if self.check_enable_range(command[0], command[1])==False or self.table[command[0]][command[1]]!=0:
-            self.winner = -1
+
+
+        if command==None:
+            #print("command=None")
             self.missed = True
+        elif command[0]==0 and command[1]==0:
+            self.check_winner()
+            return True
+        elif self.check_enable_range(command[0], command[1])==False:
+            #print("command=out of range")
+            self.missed = True
+        elif self.table[command[0]][command[1]]!=0:
+            #print("command=invalid")
+            self.missed = True
+        elif self.tmpTalbe[command[0]][command[1]]!=0:
+            # print("command=invalid same position")
+            self.missed = True
+
+        if self.missed==True:
+            self.winner = -1
             self.done = True
             return False
-            
+
         self.table[target[0]][target[1]] = 0
         self.tmpTalbe[target[0]][target[1]] = 1
         self.table[command[0]][command[1]] = id

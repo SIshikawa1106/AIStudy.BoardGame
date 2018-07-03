@@ -70,7 +70,9 @@ def test():
         print(target)
         print(cmd)
         while True:
+            print(board.isMoved())
             board.move(target, cmd)
+            print(board.isMoved())
             board.show()
             if board.winner!=None:
                 print(("---Winner = {}---").format(board.winner))
@@ -80,7 +82,8 @@ def test():
                 if len(jump)!=0:
                     print("You can move once more.")
                     cmd = human.cmd(jump)
-                    continue
+                    if cmd!=None:
+                    	continue
             board.reverse()
             break
 
